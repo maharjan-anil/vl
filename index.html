@@ -174,12 +174,25 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f0f; colo
         <h5 class="mb-3"><i class="fas fa-cog me-2"></i>Video Password Settings</h5>
         <form id="settingsForm">
             <div class="mb-2">
-                <label class="form-label">Current Video Password</label>
-                <input type="text" id="currentVideoPassword" class="form-control" readonly>
+                <label class="form-label">Current Password Status</label>
+                <input type="text" id="currentVideoPassword" class="form-control" value="••••••••" readonly 
+                       style="cursor: not-allowed; opacity: 0.6;">
+                <small class="text-muted" style="font-size:0.75rem; color:#888;">
+                    <i class="fas fa-info-circle"></i> Current password is hidden for security
+                </small>
             </div>
             <div class="mb-2">
                 <label class="form-label">New Video Password</label>
-                <input type="text" id="newVideoPassword" class="form-control" placeholder="Enter new password" required>
+                <input type="text" id="newVideoPassword" class="form-control" 
+                       placeholder="Enter new password" required>
+                <small class="text-muted" style="font-size:0.75rem; color:#888;">
+                    <i class="fas fa-shield-alt"></i> This will be the new password for protected videos
+                </small>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Confirm New Password</label>
+                <input type="text" id="confirmVideoPassword" class="form-control" 
+                       placeholder="Re-enter new password" required>
             </div>
             <div id="settingsStatus"></div>
             <div class="d-flex justify-content-between mt-3">
@@ -295,6 +308,7 @@ const authPassword = document.getElementById('authPassword');
 const authError = document.getElementById('authError');
 const authSubmitBtn = document.getElementById('authSubmitBtn');
 const cancelAuth = document.getElementById('cancelAuth');
+const confirmVideoPassword = document.getElementById('confirmVideoPassword');
 
 let currentVideo = null;
 
@@ -834,8 +848,10 @@ editVideoForm.addEventListener('submit', async (e) => {
 // ============================================
 settingsBtn.addEventListener('click', () => {
     if (currentUser) {
-        currentVideoPassword.value = videoPassword;
+        // ✅ Don't show actual password - just show masked dots
+        currentVideoPassword.value = '••••••••';
         newVideoPassword.value = '';
+        confirmVideoPassword.value = '';
         settingsStatus.textContent = '';
         settingsModal.style.display = 'flex';
     }
@@ -848,7 +864,10 @@ cancelSettings.addEventListener('click', () => {
 
 settingsForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!db || !currentUser) { alert("Not authenticated"); return; }
+    if (!db || !currentUser) { 
+        alert("Not authenticated"); 
+        return; 
+    }
     
     const btn = e.target.querySelector('button[type="submit"]');
     const originalText = btn.textContent;
@@ -857,9 +876,27 @@ settingsForm.addEventListener('submit', async (e) => {
     settingsStatus.textContent = "";
     
     const newPassword = newVideoPassword.value.trim();
+    const confirmPassword = confirmVideoPassword.value.trim();
     
+    // ✅ Validate password
     if (!newPassword) {
         settingsStatus.textContent = "❌ Password cannot be empty";
+        settingsStatus.className = "status-error";
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+    }
+    
+    if (newPassword.length < 4) {
+        settingsStatus.textContent = "❌ Password must be at least 4 characters";
+        settingsStatus.className = "status-error";
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        settingsStatus.textContent = "❌ Passwords do not match";
         settingsStatus.className = "status-error";
         btn.disabled = false;
         btn.textContent = originalText;
